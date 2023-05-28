@@ -1,0 +1,168 @@
+---
+title: "02-analysis"
+output: html_notebook
+---
+
+##Recap our question
+
+1- What is the trend of H1B sponsorship in Texas? (i.e. how many petitions has Texas applied for in the past five years and what is the approval rate?) 
+2- Which state submits the most H1B visa applications? 
+3- What kind of positions do U.S. employers prefer to sponsor for H1B visas? I will analyze two industries: computer science and journalism. 
+4- What is the average salary of H1B applicants in each state? 
+5- Which company submits the most petitions?
+
+## Setting Up
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(janitor)
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(readxl)
+```
+
+## Import the data
+
+```{r}
+h1b_1 <- read_rds("data-process/h1b_petition.rds") #1 means phase one, all petition
+h1b_tx_2 <- read_rds("data-process/tx_apply.rds") #2 means phase two, who is winner of lottery and qalified the H1B visa
+
+h1b_1
+```
+
+# City
+
+## What is the trend of H1B sponsorship in Texas? (i.e. how many petitions has Texas applied for in the past five years and what is the approval rate?) 
+
+To answer this question, I will calculate Texas'approve rate through two data set. Using approve number divide total petition number.
+
+```{r petition_count}
+tx_petition_count <- h1b_1 |> 
+  filter(state == "Texas") |> #we filter TX
+  group_by(year) |> # we get each year Texas data
+  summarize(
+    petition_count = n()) 
+
+tx_petition_count #In 2019, we have lots of miss numver, so the result seem wierd.
+```
+
+```{r approve_number}
+tx_approve_count <- h1b_tx_2 |> #
+  mutate(
+    total_amount = initial_approval + initial_denial + continuing_approval + continuing_denial, # number of lottery winner is the sum of four index (also include denied)
+    final_approve_amount = initial_approval + continuing_approval,
+    year = fiscal_year #fiscal year is different with year, I'm not sure kiggle data year's mean
+    ) |> 
+  group_by(year) |> 
+  summarise(approve_count = sum(total_amount,na.rm = TRUE))
+
+tx_approve_count
+```
+
+Fact: The number of applications in Texas has increased year by year (19,20 data are inaccurate), but the number of final approvment has decreased slightly. For an international student who wants to work in Texas, his probability of getting an H1B visa is around 56%.
+
+## Which years had the most approved visa?
+
+```{r}
+h1b_apply |> 
+  mutate(
+    total_amount = initial_approval + initial_denial + continuing_approval + continuing_denial,
+    final_approve_amount = initial_approval + continuing_approval,
+    ) |> 
+  group_by(fiscal_year) |> 
+  summarise(
+    petition = sum(total_amount, na.rm = TRUE),
+     approve = sum(final_approve_amount, na.rm = TRUE),
+    approve_rate = approve / petition
+  ) 
+```
+
+Fact:After USCIS withdraw Trump's restrictive policy on H1B visas, the final pass rate improved significantly from its lowest point, about 22%.
+
+## Which state submit the most H1B visa petition in 2022?
+
+```{r}
+h1b_1 |> 
+  filter(year == 2022) |> 
+  group_by(state) |> 
+  summarise(amounts = n()) |> 
+  arrange(desc(amounts))
+```
+
+## Which city submit the most H1B visa petition in 2022?
+
+```{r}
+h1b_1 |> 
+  filter(year == 2022) |> 
+  group_by(city) |> 
+  summarise(amounts = n()) |> 
+  arrange(desc(amounts))
+```
+
+Wow Austin is rank 4 in U.S. (Will I have a job!?)
+
+# Occupation
+
+## What kind of positions do U.S. employers like to sponsor H1B visa?
+
+I design two attribute for this, one is "CS_related", meaning "computer science related", will be derived from the SOC_Title attribute; and "count", meaning  the tally based on the value of each attribute.
+
+## Journalism-related occupation analysis
+
+```{r}
+j_position <- c(
+  "Reporters And Correspondents",
+  "News Analysts, Reporters, And Journalists"
+)
+j_related <- h1b_1 |> 
+  filter(soc_title %in% j_position) |> 
+  group_by(year) |> 
+  summarise(amounts = n()) 
+ 
+
+j_related 
+
+```
+
+## Comuter-related occupation analysis
+
+```{r}
+cs_related <- h1b_1 |> 
+ filter(grepl("computer|software|programmer", soc_title, ignore.case = TRUE)) |> 
+   group_by(year) |> 
+  summarise(amounts = n()) 
+
+cs_related 
+```
+
+## What is the average salary of H1B applicants in each state? 
+
+```{r}
+salary <- h1b_1 |> 
+  filter(year == "2022") |> 
+  group_by(state) |> 
+  summarise(avg_salary = mean(prevailing_wage),  na.rm = TRUE) |> 
+  arrange(desc(avg_salary))
+
+salary
+```
+
+## Which company submits the most petitions?
+
+```{r}
+h1b_total_1 |> 
+  filter(year == "2022") |> 
+  group_by(employer_name) |> 
+   summarise(amounts = n()) |> 
+  arrange(desc(amounts))
+```
+
+Lede: Visas have always been an important issue for international students who want to stay and work in the U.S. Many students have ended their journey in the U.S. because they did not win the H1B lottery. According to the latest projections, the H1B winning rate for 2023 has even set a new low of only 15%.
+
+Question:
+Do you know why there are problems with some years of the data? 
+I have some worries about comparing these two data sets to get the percentage ... don't you have what you need in the h1b_tx_2 data, since that has approvals and denials? 
+- On states with most petitions, California and Texas are the most populous states so that isn't really a finding. Perhaps do that per capita? 
+- Are you calculating the H1B winning rate here?

@@ -1,0 +1,23 @@
+---
+title: "00-readme"
+output: html_document
+date: "2023-04-07"
+---
+
+Each year, UCS gives out 65,000 H-1B new visas to applicants with bachelor’s or higher degrees and additional 20,000 ones to those with master’s or higher degrees. However, due to the high volume of sponsorship applications, USCIS uses a lottery to keep the number within the quota and decide which applications to review.
+
+In this data journalism project, I use Department of Labor data set and USCIS data set to analysis H1B visas of last five years, corresponding to the two phases of the H1B visa：lottery phase and reviewed phase. Any applicant can enter the reviewed phase only they win the lottery.
+
+In this project, I will focus on analyzing two aspects: cities and occupations. 
+The research questions include: 
+
+1- What is the trend of H1B sponsorship in Texas? (i.e. how many petitions has Texas applied for in the past five years and what is the approval rate?)
+2- Which state submits the most H1B visa applications? 
+3- What kind of positions do U.S. employers prefer to sponsor for H1B visas? I will analyze two industries: computer science and journalism. 
+4- What is the average salary of H1B applicants in each state? 
+5- Which company submits the most petitions?
+
+And choose appropriate chart to visualize the analysis result.
+
+
+

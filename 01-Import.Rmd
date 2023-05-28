@@ -1,0 +1,141 @@
+---
+title: "01-import"
+output: html_notebook
+---
+
+## Goal of the notebook
+
+- Download the data
+- Bind the data
+- Import into R
+- Clean up data types and columns
+- Export for next notebook
+
+## Data Source
+
+Data sources
+1- USCIS: https://www.uscis.gov/tools/reports-and-studies/h-1b-employer-data-hub/h-1b-employer-data-hub-files
+I will use this dataset to analysis Texas H1B approve rate.
+
+2- U.S. Department of Labor(Kaggle): https://www.kaggle.com/datasets/jishnukoliyadan/lca-programs-h1b-h1b1-e3-visa-petitions?resource=download
+I will use this dataset to produce a bubble map to comapre with NYC, Cal and Texas petition amounts.
+
+## Data Attributes
+
+NAICS: North American Industry Classification System We can know the industry of company through NAICS code.
+2022 edition: https://www.census.gov/naics/?58967?yearbck=2022
+2017 edition: https://www.census.gov/naics/?58967?yearbck=2017
+
+## Setting Up
+
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+# petition data
+
+##Import petition data
+
+I split the variable "worksite" to city and state in csv. and add year on the raw data.
+
+```{r}
+h1b22_petition <- read_csv("data-raw/LCA_FY_2022.csv") |> 
+  clean_names() |> 
+   select(visa_class, employer_name, soc_title, city, state, prevailing_wage, year) 
+  
+
+h1b21_petition <- read_csv("data-raw/LCA_FY_2021.csv") |> 
+  clean_names() |> 
+   select(visa_class, employer_name, soc_title, city, state, prevailing_wage, year)
+
+h1b20_petition <- read_csv("data-raw/LCA_FY_2020.csv") |> 
+  clean_names() |> 
+   select(visa_class, employer_name, soc_title, city, state, prevailing_wage, year)
+
+h1b19_petition <- read_csv("data-raw/LCA_FY_2019.csv") |> 
+  clean_names() |> 
+  mutate( prevailing_wage = wage_rate_of_pay) |> 
+   select(visa_class, employer_name, soc_title,city, state, prevailing_wage, year)
+
+h1b18_petition <- read_csv("data-raw/LCA_FY_2018.csv") |> 
+  clean_names() |> 
+   select(visa_class, employer_name, soc_title, city, state, prevailing_wage, year)
+```
+
+
+## Merge data
+
+```{r}
+h1b_petition <- h1b22_petition |> 
+  bind_rows(h1b21_petition,
+            h1b20_petition,
+            h1b19_petition,
+            h1b18_petition) |>  #data of 19&18 has different data type with others, so we need change or select
+  clean_names() |> 
+  filter(visa_class == "H-1B")
+
+h1b_petition
+```
+
+# application data
+
+## Importing the application data
+
+```{r}
+h1b22 <- read_csv("data-raw/h1b_datahubexport-2022.csv") |> 
+  clean_names() |> 
+   select(-tax_id, -zip)
+
+h1b21 <- read_csv("data-raw/h1b_datahubexport-2021.csv") |> 
+  clean_names() |> 
+  select(-tax_id, -zip)
+
+h1b20 <- read_csv("data-raw/h1b_datahubexport-2020.csv") |> 
+  clean_names() |> 
+  select(-tax_id, -zip)
+
+h1b19 <- read_csv("data-raw/h1b_datahubexport-2019.csv") |> 
+  clean_names() |> 
+  select(-tax_id, -zip)
+
+h1b18 <- read_csv("data-raw/h1b_datahubexport-2018.csv") |> 
+  clean_names() |> 
+ select(-tax_id, -zip)
+```
+
+## Merge application data
+
+```{r}
+h1b_apply <- h1b22 |> 
+  bind_rows(h1b21,
+            h1b20,
+            h1b19,
+            h1b18) #data of 19&18 has different data type with others, so I change it
+
+h1b_apply |> 
+  count(fiscal_year)
+```
+
+##Glimpse
+
+```{r}
+glimpse(h1b_apply)
+```
+
+## Filter the data
+
+```{r}
+h1b_tx_apply <- h1b_apply |> 
+  filter(
+    state == "TX"
+  )
+```
+
+## Export data
+
+```{r}
+h1b_tx_apply |> write_rds("data-process/tx_apply.rds")
+h1b_petition |> write_rds("data-process/h1b_petition.rds")
+```
+
